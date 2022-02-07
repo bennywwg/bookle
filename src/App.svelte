@@ -187,7 +187,7 @@
 	}
 
 	const wordListProm
-	=fetch("/wordList.json")
+	=fetch("/hardle/wordList.json")
 	.then(res => {
 		res.json()
 		.then(data => {
