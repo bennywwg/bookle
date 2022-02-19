@@ -19,12 +19,14 @@
 	$: currentGuess = "";
 	$: previousScores = [];
 	$: hasWon = false;
+	$: loadingStatus = "Loading Words...";
 
 	let validWordList = [];
 	let wordToGuess = "";
 	let inputLimit = 5;
 	const inputSizes = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]; // 14 has roughly the same number of words as 5
 	const maxAttempts = 6;
+
 
 	const getContentAreaElement = () => document.getElementById("content-area");
 
@@ -208,19 +210,23 @@
 	=fetch(`${urlBase}/wordList.json`)
 	.then(res => {
 		if (!res.ok) {
+			loadingStatus = `Failed to load word list: ${res.statusText}`;
 			return Promise.reject(`wordList fetch failed with: ${res.statusText}`);
 		}
 
 		res.json()
 		.then(data => {
 			validWordList = data.wordList.filter(word => word.length === inputLimit);
+			loadingStatus = "";
 		})
 		.catch(err => {
 			console.log(err);
+			loadingStatus = `Failed to load word list: ${err}`;
 		});
 	})
 	.catch(err => {
 		console.log(err);
+		loadingStatus = `Failed to load word list: ${err}`;
 	});
 
 	onMount(gameApp);
@@ -241,6 +247,10 @@
 	</div>
 
 	<input type="text" id="hidden-input"/>
+
+	{#if loadingStatus.length != 0}
+		<div> Loading Words </div>
+	{/if}
 
 	<div id="content-area" on:keydown={handleContentAreaInput}>
 		{#each previousScores as score, index}
