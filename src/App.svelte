@@ -14,6 +14,8 @@
 		correctTransferRight: number;
 	};
 
+	export let urlBase: string = "";
+
 	$: currentGuess = "";
 	$: previousScores = [];
 	$: hasWon = false;
@@ -40,17 +42,15 @@
 		}
 	};
 
-	const submitGuess = () => {
+	const calcPresentAndCorrect = (guess: string, toGuess: string): [number, number, any, any] => {
 		let guessFrequencies = { };
-		currentGuess.split('')
-		//.map(character => character.toUpperCase())
+		guess.split('')
 		.forEach(character => {
 			guessFrequencies[character] = (guessFrequencies[character] || 0) + 1;
 		});
 
 		let canonicalFrequencies = { };
-		wordToGuess.split('')
-		//.map(character => character.toUpperCase())
+		toGuess.split('')
 		.forEach(character => {
 			canonicalFrequencies[character] = (canonicalFrequencies[character] || 0) + 1;
 		});
@@ -60,8 +60,8 @@
 		// Count the correct and present letters
 		let numCorrect = 0;
 		for (let i = 0; i < inputLimit; i++) {
-			let character = currentGuess[i];
-			if (character === wordToGuess[i]) {
+			let character = guess[i];
+			if (character === toGuess[i]) {
 				numCorrect++;
 				guessFrequencies[character]--;
 				canonicalFrequencies[character]--;
@@ -79,6 +79,29 @@
 			if (amount != 0) { presentFrequencies[character] = amount; }
 		});
 
+		return [numPresent, numCorrect, presentFrequencies, correctFrequencies];
+	};
+
+	const findValidGuessWord = (guess: string) => {
+		const validGuesses = validWordList.filter(word => {
+			const [numPresent, numCorrect] = calcPresentAndCorrect(guess, word);
+			return numPresent + numCorrect >= 2;
+		});
+
+		console.log(`Sampling from ${validGuesses.length} words`);
+
+		// All these words have at least one present and correct, return a random one
+		return validGuesses[Math.floor(Math.random() * validGuesses.length)];
+	}
+
+	// Mutates the game state
+	const submitGuess = () => {
+		if (previousScores.length == 0) {
+			wordToGuess = findValidGuessWord(currentGuess);
+		}
+
+		const [numPresent, numCorrect, presentFrequencies, correctFrequencies] = calcPresentAndCorrect(currentGuess, wordToGuess);
+
 		let presentToPresentCount = 0;
 		let presentToCorrectCount = 0;
 		let correctToPresentCount = 0;
@@ -93,11 +116,6 @@
 
 			let prevPresentFrequencies = previousScores[previousScores.length - 1].presentFrequencies;
 			let prevCorrectFrequencies = previousScores[previousScores.length - 1].correctFrequencies;
-
-			console.log(presentFrequencies);
-			console.log(correctFrequencies);
-			console.log(prevPresentFrequencies);
-			console.log(prevCorrectFrequencies);
 
 			Object.keys(presentFrequencies).forEach(character => {
 				presentToPresentCount += (prevPresentFrequencies[character] || 0);
@@ -187,15 +205,15 @@
 	}
 
 	const wordListProm
-	=fetch("/hardle/wordList.json")
+	=fetch(`${urlBase}/wordList.json`)
 	.then(res => {
+		if (!res.ok) {
+			return Promise.reject(`wordList fetch failed with: ${res.statusText}`);
+		}
+
 		res.json()
 		.then(data => {
-			validWordList = data.wordList;
-
-			validWordList = validWordList.filter(word => word.length === inputLimit);
-		
-			wordToGuess = validWordList[Math.floor(Math.random() * validWordList.length)];
+			validWordList = data.wordList.filter(word => word.length === inputLimit);
 		})
 		.catch(err => {
 			console.log(err);

@@ -31,47 +31,45 @@
     
 </script>
 
-<main>
-    <div class="guess-row">
-        {#each characters() as char}
-            <div class="game-square {guessClass}">{char}</div>
-        {/each}
-        <div class="game-square {presentClass}">
-            {presentCount}
-            {#if showTransition}
-                {#if transferCounts[2] !== "0"}
-                    <LROversvg/>
-                {/if}
-                {#if transferCounts[0] !== "0"}
-                    <Lsvg/>
-                    <div class="minisquare present-minisquare{showMinisquaresSubmitted?'':'-empty'}">{transferCounts[0]}</div>
-                {/if}
-                {#if transferCounts[1] !== "0"}
-                    {#if transferCounts[2] !== "0"}
-                        <RLUndersvg/>
-                    {:else}
-                        <RLOversvg/>
-                    {/if}
-                    <div class="minisquare correct-minisquare{showMinisquaresSubmitted?'':'-empty'}">{transferCounts[1]}</div>
-                {/if}
-                {#if transferCounts[3] !== "0"}
-                    <Rsvg/>
-                {/if}
+<div class="guess-row">
+    {#each characters() as char}
+        <div class="game-square {guessClass}">{char}</div>
+    {/each}
+    <div class="game-square {presentClass}">
+        {presentCount}
+        {#if showTransition}
+            {#if transferCounts[2] !== "0"}
+                <LROversvg/>
             {/if}
-        </div>
-        <div class="game-square {correctClass}">
-            {correctCount}
-            {#if showTransition}
-                {#if transferCounts[2] !== "0"}
-                    <div class="minisquare present-minisquare{showMinisquaresSubmitted?'':'-empty'}">{transferCounts[2]}</div>
-                {/if}
-                {#if transferCounts[3] !== "0"}
-                    <div class="minisquare correct-minisquare{showMinisquaresSubmitted?'':'-empty'}">{transferCounts[3]}</div>
-                {/if}
+            {#if transferCounts[0] !== "0"}
+                <Lsvg/>
+                <div class="minisquare present-minisquare{showMinisquaresSubmitted?'':'-empty'}">{transferCounts[0]}</div>
             {/if}
-        </div>
+            {#if transferCounts[1] !== "0"}
+                {#if transferCounts[2] !== "0"}
+                    <RLUndersvg/>
+                {:else}
+                    <RLOversvg/>
+                {/if}
+                <div class="minisquare correct-minisquare{showMinisquaresSubmitted?'':'-empty'}">{transferCounts[1]}</div>
+            {/if}
+            {#if transferCounts[3] !== "0"}
+                <Rsvg/>
+            {/if}
+        {/if}
     </div>
-</main>
+    <div class="game-square {correctClass}">
+        {correctCount}
+        {#if showTransition}
+            {#if transferCounts[2] !== "0"}
+                <div class="minisquare present-minisquare{showMinisquaresSubmitted?'':'-empty'}">{transferCounts[2]}</div>
+            {/if}
+            {#if transferCounts[3] !== "0"}
+                <div class="minisquare correct-minisquare{showMinisquaresSubmitted?'':'-empty'}">{transferCounts[3]}</div>
+            {/if}
+        {/if}
+    </div>
+</div>
 
 <style>
     .guess-row {
