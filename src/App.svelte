@@ -1,223 +1,112 @@
 <script lang="ts">
-	import { onMount } from 'svelte/internal';
-	import Row from './Row.svelte';
-
-	class GuessScore {
-		guess: string;
-		present: number;
-		correct: number;
-		presentFrequencies: any; // just so we don't need to recalculate
-		correctFrequencies: any;
-		presentTransferLeft: number;
-		presentTransferRight: number;
-		correctTransferLeft: number;
-		correctTransferRight: number;
-	};
+	import { log } from 'console';
+import { onMount } from 'svelte/internal';
+    import Game from './Game.svelte';
+	import Keyboard from './Keyboard.svelte';
 
 	export let urlBase: string = "";
 
-	$: currentGuess = "";
-	$: previousScores = [];
-	$: hasWon = false;
-	$: loadingStatus = "Loading Words...";
+	let loadingStatus: string = "Loading Words...";
 
 	let validWordList = [];
-	let wordToGuess = "";
+	let guessList = [];
 	let inputLimit = 5;
-	const inputSizes = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]; // 14 has roughly the same number of words as 5
-	const maxAttempts = 6;
+	let currentGuess: string;
 
+	let gameEnded: boolean = false;
+    let guessesState = [];
+	let completedGuesses = [];
+	let gamePopulateGameState: () => void;
+	let gameHandleKeyPress: (key: string) => void;
 
-	const getContentAreaElement = () => document.getElementById("content-area");
+	const saveStateToLocalStorage = () => {
+		// Save guessesState and completedGuesses to local storage
+		localStorage.setItem("guessesState", JSON.stringify(guessesState));
+		localStorage.setItem("completedGuesses", JSON.stringify(completedGuesses));
+		console.log(guessesState);
+	};
 
-	// Handle input from anywhere on the content area
-	const handleGuessInput = key => {
-		// Handle backspace, remove the last character if it exists
-		if (["Backspace", "Delete"].includes(key)) {
-			if (currentGuess.length > 0) {
-				currentGuess = currentGuess.slice(0, currentGuess.length - 1);
+	const tryLoadStateFromLocalStorage = () => {
+		// Load guessesState and completedGuesses from local storage
+		const guessesStateString = localStorage.getItem("guessesState");
+		const completedGuessesString = localStorage.getItem("completedGuesses");
+		if (guessesStateString && completedGuessesString) {
+			try {
+				guessesState = JSON.parse(guessesStateString);
+				completedGuesses = JSON.parse(completedGuessesString);
+				console.log(guessesState);
+			} catch(e) {
+				console.error(e);
+				console.log("Failed to load state from local storage, evicting all state.");
+				clearLocalStorage();
 			}
-		} else if (key.length === 1 && key.match(/[a-zA-Z]/i)) {
-			if (currentGuess.length < inputLimit) {
-				currentGuess = currentGuess.concat(key.toUpperCase().toString());
-			}
+			console.log("Loaded state from local storage.");
+		} else {
+			console.log("No saved state found... starting fresh game.");
 		}
 	};
 
-	const calcPresentAndCorrect = (guess: string, toGuess: string): [number, number, any, any] => {
-		let guessFrequencies = { };
-		guess.split('')
-		.forEach(character => {
-			guessFrequencies[character] = (guessFrequencies[character] || 0) + 1;
-		});
-
-		let canonicalFrequencies = { };
-		toGuess.split('')
-		.forEach(character => {
-			canonicalFrequencies[character] = (canonicalFrequencies[character] || 0) + 1;
-		});
-
-		let correctFrequencies = { };
-
-		// Count the correct and present letters
-		let numCorrect = 0;
-		for (let i = 0; i < inputLimit; i++) {
-			let character = guess[i];
-			if (character === toGuess[i]) {
-				numCorrect++;
-				guessFrequencies[character]--;
-				canonicalFrequencies[character]--;
-
-				correctFrequencies[character] = (correctFrequencies[character] || 0) + 1;
-			}
-		}
-
-		let presentFrequencies = { };
-
-		let numPresent = 0;
-		Object.keys(guessFrequencies).forEach(character => {
-			let amount = Math.min(guessFrequencies[character], canonicalFrequencies[character] || 0);
-			numPresent += amount;
-			if (amount != 0) { presentFrequencies[character] = amount; }
-		});
-
-		return [numPresent, numCorrect, presentFrequencies, correctFrequencies];
+	const clearLocalStorage = () => {
+		// Clear local storage
+		localStorage.clear();
 	};
 
-	const findValidGuessWord = (guess: string) => {
-		const validGuesses = validWordList.filter(word => {
-			const [numPresent, numCorrect] = calcPresentAndCorrect(guess, word);
-			return numPresent + numCorrect >= 2;
-		});
-
-		console.log(`Sampling from ${validGuesses.length} words`);
-
-		// All these words have at least one present and correct, return a random one
-		return validGuesses[Math.floor(Math.random() * validGuesses.length)];
-	}
-
-	// Mutates the game state
-	const submitGuess = () => {
-		if (previousScores.length == 0) {
-			wordToGuess = findValidGuessWord(currentGuess);
-		}
-
-		const [numPresent, numCorrect, presentFrequencies, correctFrequencies] = calcPresentAndCorrect(currentGuess, wordToGuess);
-
-		let presentToPresentCount = 0;
-		let presentToCorrectCount = 0;
-		let correctToPresentCount = 0;
-		let correctToCorrectCount = 0;
-
-		// compute transition values
-		if (previousScores.length != 0) {
-			//let presentFrequenciesClone = JSON.parse(JSON.stringify(presentFrequencies));
-			//let correctFrequenciesClone = JSON.parse(JSON.stringify(correctFrequencies));
-
-			//let keysToCheck = [...new Set([...Object.keys(presentFrequenciesClone), ...Object.keys(correctFrequenciesClone)])];
-
-			let prevPresentFrequencies = previousScores[previousScores.length - 1].presentFrequencies;
-			let prevCorrectFrequencies = previousScores[previousScores.length - 1].correctFrequencies;
-
-			Object.keys(presentFrequencies).forEach(character => {
-				presentToPresentCount += (prevPresentFrequencies[character] || 0);
-			});
-
-			Object.keys(presentFrequencies).forEach(character => {
-				correctToPresentCount += (prevCorrectFrequencies[character] || 0);
-			});
-
-			Object.keys(correctFrequencies).forEach(character => {
-				presentToCorrectCount += (prevPresentFrequencies[character] || 0);
-			});
-
-			Object.keys(correctFrequencies).forEach(character => {
-				correctToCorrectCount += (prevCorrectFrequencies[character] || 0);
-			});
-		}
-
-		previousScores = previousScores.concat({
-			guess: currentGuess,
-			present: numPresent,
-			correct: numCorrect,
-			presentFrequencies: presentFrequencies,
-			correctFrequencies: correctFrequencies,
-			presentTransferLeft: presentToPresentCount,
-			presentTransferRight: correctToPresentCount,
-			correctTransferLeft: presentToCorrectCount,
-			correctTransferRight: correctToCorrectCount,
-		});
-
-		if (currentGuess == wordToGuess) {
-			hasWon = true;
-		}
-
+	const resetGame = () => {
+		// Reset game state
+		completedGuesses = [];
 		currentGuess = "";
+		gameEnded = false;
+		gamePopulateGameState();
+		saveStateToLocalStorage();
 	};
 
-	let handleContentAreaInput = (event: KeyboardEvent) => {
-		if (hasWon) return;
+	let currentSelectionSolution: string = "";
 
-		// If the key is enter, they are submitting the guess
-		if (event.key === "Enter" && currentGuess.length == inputLimit) {
-			if (validWordList.includes(currentGuess)) {
-				submitGuess();
-			}
-		} else {
-			handleGuessInput(event.key);
-		}
-	};
+    // Compute the set all the present and correct keys
+    $: presentCorrectKeyLists = (() => {
+        let presentKeys: string[] = [];
+        let correctKeys: string[]  = [];
+		let usedKeys: string[] = [];
+        guessesState.forEach(state => {
+			if (currentSelectionSolution.length !== 0 && state.solution !== currentSelectionSolution) return;
+            const solutionList = state.solution.split('');
+            state.guesses.forEach(guess => {
+                guess.split('').forEach((character, i) => {
+                    if (solutionList[i] === character) {
+                        correctKeys.push(character);
+                    } else if (solutionList.includes(character)) {
+                        presentKeys.push(character);
+                    } else {
+						usedKeys.push(character);
+					}
+                });
+            });
+        });
 
-	// Initial setup
-	{
-		const params = new Proxy(new URLSearchParams(window.location.search), {
-			get: (searchParams: URLSearchParams, prop: string) => searchParams.get(prop),
-		});
+        return { presentKeys, correctKeys, usedKeys };
+    })();
 
-		if (params["cc"] != undefined) {
-			inputLimit = parseInt(params["cc"]);
-		}
+	$: completeCount = completedGuesses.length;
+	
+	const params = new Proxy(new URLSearchParams(window.location.search), {
+		get: (searchParams: URLSearchParams, prop: string) => searchParams.get(prop),
+	});
+
+	if (params["cc"] != undefined) {
+		inputLimit = parseInt(params["cc"]);
 	}
 
-	const gameApp = () => {
-		// selector for the length of the word to guess
-		const ccSelector = document.getElementById("cc") as HTMLInputElement;
-		ccSelector.addEventListener("change", () => {
-			window.location.href = window.location.href.split("?")[0] + "?cc=" + ccSelector.value;
-		});
-
-		if (!('ontouchstart' in document.documentElement)) {
-			// Add input listener
-			document
-			.addEventListener("keydown", handleContentAreaInput);
-
-			// Destroy the hidden input
-			document.getElementById("hidden-input").remove();
-		} else {
-			console.log("Virtual keyboard device detected");
-
-			const hiddenInput = document.getElementById("hidden-input") as HTMLInputElement;
-
-			hiddenInput.addEventListener("keydown", event => {
-				hiddenInput.innerText = "";
-				hiddenInput.value = "";
-				handleContentAreaInput(event);
-			});
-		}
-	}
-
-	const wordListProm
-	=fetch(`${urlBase}/wordList.json`)
-	.then(res => {
+	const validWords =
+	fetch(`${urlBase}/wordList.json`)
+	.then(async res => {
 		if (!res.ok) {
 			loadingStatus = `Failed to load word list: ${res.statusText}`;
 			return Promise.reject(`wordList fetch failed with: ${res.statusText}`);
 		}
 
-		res.json()
+		await res.json()
 		.then(data => {
 			validWordList = data.wordList.filter(word => word.length === inputLimit);
-			loadingStatus = "";
 		})
 		.catch(err => {
 			console.log(err);
@@ -229,183 +118,141 @@
 		loadingStatus = `Failed to load word list: ${err}`;
 	});
 
-	onMount(gameApp);
+	const validGuesses =
+	fetch(`${urlBase}/sedecordle-answers.json`)
+	.then(async res => {
+		if (!res.ok) {
+			loadingStatus = `Failed to load word list: ${res.statusText}`;
+			return Promise.reject(`wordList fetch failed with: ${res.statusText}`);
+		}
+
+		await res.json()
+		.then(data => {
+			guessList = data.wordList.filter(word => word.length === inputLimit);
+		})
+		.catch(err => {
+			console.log(err);
+			loadingStatus = `Failed to load word list: ${err}`;
+		});
+	})
+	.catch(err => {
+		console.log(err);
+		loadingStatus = `Failed to load word list: ${err}`;
+	});
+
+	Promise.all([validWords, validGuesses])
+	.then(res => {
+		// Ensure that all guess words are in the valid list
+		// Filter and alert if any aren't
+		const wordsToAdd = guessList.filter(guess => !validWordList.includes(guess));
+
+		// Print out the words that weren't in the valid list
+		if (wordsToAdd.length > 0 && wordsToAdd.length <= 100) {
+			console.log(`The following solution words were not present in the valid list: ${wordsToAdd.join(', ')}. Consider fixing this permanently.`);
+		} else if (wordsToAdd.length > 100) {
+			console.log('More than 100 solution words were not present in the valid list. Consider fixing this permanently.');
+		}
+
+		// Concat the valid list with the new words
+		validWordList = validWordList.concat(wordsToAdd);
+
+		tryLoadStateFromLocalStorage();
+		
+		loadingStatus = "";
+	})
+	.catch(err => {
+		console.log(err);
+		loadingStatus = `Failed to load word list: ${err}`;
+	});
+
+	$: guessLog = completedGuesses.forEach(guess => guess.solution);
 </script>
 
 <main>
-	<div id="header-bar">
-		<div>By Benny Wysong-Grass</div>
-		<h1>HARDLE</h1>
-		<div>
-			<label for="cc">Length</label>
-			<select name="cc" id="cc" value={inputLimit}>
-				{#each inputSizes as size}
-					<option>{size}</option>
-				{/each}
-			</select>
+	<div id="headers">
+		<div id="header-bar">
+			<b id="bookle-label">BOOKLE</b>
+			{#if gameEnded}
+				<b id="completion">Game Ended! {completeCount} of 1000</b>
+			{:else}
+				<b id="completion">{loadingStatus === "" ? completeCount : "?"} of 1000</b>
+			{/if}
+			<b id="ng-button" on:click={(ev) => { ev.currentTarget.blur(); resetGame(); }}>New Game</b>
 		</div>
 	</div>
-
-	<input type="text" id="hidden-input"/>
-
-	{#if loadingStatus.length != 0}
-		<div> Loading Words </div>
-	{/if}
-
-	<div id="content-area" on:keydown={handleContentAreaInput}>
-		{#each previousScores as score, index}
-			<Row
-				guess={score.guess}
-				submitted={true}
-				showTransition={index!=0}
-				showMinisquaresSubmitted={true}
-				transferCounts={[
-					score.presentTransferLeft.toString(),
-					score.presentTransferRight.toString(),
-					score.correctTransferLeft.toString(),
-					score.correctTransferRight.toString()
-				]}
-				inputLimit={inputLimit}
-				presentCount="{score.present}"
-				correctCount="{score.correct}"
-			/>
-		{/each}
-
-		{#if hasWon}
-			<div class="winner">You Won!</div>
+	<div id="game-area">
+		{#if loadingStatus.length != 0}
+			<div> Loading Words </div>
 		{:else}
-			<Row
-				guess={currentGuess}
-				submitted={false}
-				showTransition={false}
-				showMinisquaresSubmitted={false}
-				transferCounts={["","","",""]}
-				inputLimit={inputLimit}
-				presentCount=""
-				correctCount=""
+			<Game
+				wordList={validWordList}
+				guessList={guessList}
+				solutionSize={inputLimit}
+				numGuesses={12}
+				numGames={6}
+				saveStateCallback={saveStateToLocalStorage}
+				bind:completedGuesses={completedGuesses}
+				bind:guessesState={guessesState}
+				bind:currentSelectionSolution={currentSelectionSolution}
+				bind:repopulateGameState={gamePopulateGameState}
+				bind:handleKeyPress={gameHandleKeyPress}
+				bind:currentGuess={currentGuess}
+				bind:gameEnded={gameEnded}
 			/>
 		{/if}
+	</div>
+	<div id="keyboard">
+		<Keyboard
+			presentCorrectKeyLists={presentCorrectKeyLists}
+			clickCallback={gameHandleKeyPress}
+		/>
 	</div>
 </main>
 
 <style>
-	.winner {
-		display: flex;
-		flex-direction: row;
-		justify-content: center;
-		font-size: 64px;
-	}
-
 	#header-bar {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		font-size: medium;
 		color: var(--color-tone-2);
-		padding: 1em;
-	}
-	html {
-		height: 100%;
-	}
-	body {
-		height: 100%;
-		background-color: var(--color-background);
-		margin: 0;
-		padding: 0;
 	}
 
-	    /* Global Styles & Colors */
-	:root {
-		--green: #6aaa64;
-		--darkendGreen: #538d4e;
-		--yellow: #c9b458;
-		--darkendYellow: #b59f3b;
-		--blue: #587cc9;
-		--darkendBlue: #395185;
-		--lightGray: #d8d8d8;
-		--gray: #86888a;
-		--darkGray: #939598;
-		--white: #fff;
-		--black: #212121;
-		/* Colorblind colors */
-		--orange: #f5793a;
-		--blue: #85c0f9;
-		font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
-		font-size: 24px;
-		--header-height: 50px;
-		--keyboard-height: 200px;
-		--game-max-width: 500px;
-		--game-square-size: 3rem;
-		--game-square-margin: calc(var(--game-square-size) * 0.1);
-		--game-square-border-size: 2px;
+	b {
+		align-self: center;
+		margin: 0.5rem;
+		padding: 4px;
+		flex-basis: 10rem;
+		text-align: center;
 	}
-	/* Light theme colors */
-	:root {
-		--color-tone-1: #1a1a1b;
-		--color-tone-2: #787c7e;
-		--color-tone-3: #878a8c;
-		--color-tone-4: #d3d6da;
-		--color-tone-5: #edeff1;
-		--color-tone-6: #f6f7f8;
-		--color-tone-7: #ffffff;
-		--opacity-50: rgba(255, 255, 255, 0.5);
+
+	#ng-button {
+		background-color: lightcoral;
+		border-radius: 0.5rem;
+		border: 2px solid #822;
+		color: #fff;
 	}
-	/* Dark Theme Colors */
-	.nightmode {
-		--color-tone-1: #d7dadc;
-		--color-tone-2: #818384;
-		--color-tone-3: #565758;
-		--color-tone-4: #3a3a3c;
-		--color-tone-5: #272729;
-		--color-tone-6: #1a1a1b;
-		--color-tone-7: #121213;
-		--opacity-50: rgba(0, 0, 0, 0.5);
+
+	#completion {
+		text-decoration: underline;
 	}
-	/* Constant colors and colors derived from theme */
-	:root, .nightmode {
-		--color-background: var(--color-tone-7);
-	}
-	:root {
-		--color-present: var(--yellow);
-		--color-correct: var(--green);
-		--color-absent: var(--color-tone-2);
-		--tile-text-color: var(--color-tone-7);
-		--key-text-color: var(--color-tone-1);
-		--key-evaluated-text-color: var(--color-tone-7);
-		--key-bg: var(--color-tone-4);
-		--key-bg-present: var(--color-present);
-		--key-bg-correct: var(--color-correct);
-		--key-bg-absent: var(--color-absent);
-		--modal-content-bg: var(--color-tone-7);
-	}
-	.nightmode {
-		--color-present: var(--darkendYellow);
-		--color-correct: var(--darkendGreen);
-		--color-absent: var(--color-tone-4);
-		--tile-text-color: var(--color-tone-1);
-		--key-text-color: var(--color-tone-1);
-		--key-evaluated-text-color: var(--color-tone-1);
-		--key-bg: var(--color-tone-2);
-		--key-bg-present: var(--color-present);
-		--key-bg-correct: var(--color-correct);
-		--key-bg-absent: var(--color-absent);
-		--modal-content-bg: var(--color-tone-7);
-	}
-	.colorblind {
-		--color-correct: var(--orange);
-		--color-present: var(--blue);
-		--tile-text-color: var(--white);
-		--key-bg-present: var(--color-present);
-		--key-bg-correct: var(--color-correct);
-		--key-bg-absent: var(--color-absent);
-	}
-	html {
+
+	main {
 		height: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
 	}
-	body {
-		height: 100%;
-		background-color: var(--color-background);
-		margin: 0;
-		padding: 0;
+
+	#game-area {
+		overflow: scroll;
+	}
+
+	#headers {
+		outline: 1px solid #ccc;
+	}
+
+	#keyboard {
+		outline: 1px solid #ccc;
 	}
 </style>
