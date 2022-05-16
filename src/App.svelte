@@ -229,7 +229,7 @@
 	}
 
 	#game-area {
-		overflow: scroll;
+		overflow: auto;
 		overflow-x: hidden;
 	}
 
