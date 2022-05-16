@@ -230,6 +230,7 @@
 
 	#game-area {
 		overflow: scroll;
+		overflow-x: hidden;
 	}
 
 	#headers {
