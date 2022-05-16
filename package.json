@@ -26,6 +26,9 @@
     "typescript": "^4.0.0"
   },
   "dependencies": {
-    "sirv-cli": "^2.0.0"
+    "jszip": "^3.9.1",
+    "jszip-utils": "^0.1.0",
+    "sirv-cli": "^2.0.0",
+    "stream": "^0.0.2"
   }
 }

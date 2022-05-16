@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { log } from 'console';
-import { onMount } from 'svelte/internal';
     import Game from './Game.svelte';
 	import Keyboard from './Keyboard.svelte';
+	import JSZip from 'jszip';
+	import JSZipUtils from 'jszip-utils';
 
 	export let urlBase: string = "";
 
@@ -92,30 +92,14 @@ import { onMount } from 'svelte/internal';
 		get: (searchParams: URLSearchParams, prop: string) => searchParams.get(prop),
 	});
 
-	if (params["cc"] != undefined) {
-		inputLimit = parseInt(params["cc"]);
-	}
-
-	const validWords =
-	fetch(`${urlBase}/wordList.json`)
-	.then(async res => {
-		if (!res.ok) {
-			loadingStatus = `Failed to load word list: ${res.statusText}`;
-			return Promise.reject(`wordList fetch failed with: ${res.statusText}`);
-		}
-
-		await res.json()
-		.then(data => {
-			validWordList = data.wordList.filter(word => word.length === inputLimit);
-		})
-		.catch(err => {
-			console.log(err);
-			loadingStatus = `Failed to load word list: ${err}`;
+	const validWords = new JSZip.external.Promise((resolve, reject) => {
+		JSZipUtils.getBinaryContent(`${urlBase}/wordList5.json.zip`, (err, data) => { 
+			if (err) reject(err); else resolve(data); 
 		});
-	})
-	.catch(err => {
-		console.log(err);
-		loadingStatus = `Failed to load word list: ${err}`;
+	}).then((data: any) => JSZip.loadAsync(data))
+	.then(async data => {
+		const deserJson = JSON.parse(await data.file(Object.keys(data.files)[0]).async("string"));
+		validWordList = deserJson.wordList.filter(word => word.length === inputLimit);
 	});
 
 	const validGuesses =
