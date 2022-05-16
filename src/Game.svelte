@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { empty, is_empty, onMount } from 'svelte/internal';
-    import App from './App.svelte';
+	import { onMount } from 'svelte/internal';
     import Wordle from './Wordle.svelte';
 
     let nextCreationIndex: number = 0;
