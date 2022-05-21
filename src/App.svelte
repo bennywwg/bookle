@@ -188,7 +188,7 @@
 		{/if}
 		{#if progressSelected}
 			<div class="bingus">
-				{#each completedGuesses.reverse() as guess, i}
+				{#each completedGuesses.slice().reverse() as guess, i}
 					<div> Guess {completedGuesses.length - i} {guess.guesses.length !== 0 ? '✔️':'❌'} {guess.solution} </div>
 				{/each}
 			</div>
