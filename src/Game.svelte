@@ -2,16 +2,13 @@
 	import { onMount } from 'svelte/internal';
     import Wordle from './Wordle.svelte';
 
-    let nextCreationIndex: number = 0;
     class WordleState {
         solution: string;
         guesses: string[];
-        creationIndex: number;
 
         constructor(solution: string, guesses: string[]) {
             this.solution = solution;
             this.guesses = guesses;
-            this.creationIndex = nextCreationIndex++;
         }
     };
 
@@ -23,6 +20,7 @@
     export let numGames: number;
     export let saveStateCallback: () => void;
 	export let currentGuess: string = "";
+    export let hidden: boolean;
 
     export let currentSelectionSolution;
 
@@ -44,7 +42,7 @@
     // Assume that the player will never exaust every possible word
     const getUnusedSolutionWord = () => {
         // Find a word from guessList that isn't in any of the guess states
-        const allUsedWords = [...guessesState, ...completedGuesses].map(state => state.solution);
+        const allUsedWords = [...guessesState, ...(completedGuesses.filter(state => state.guesses.length != 0))].map(state => state.solution);
 
         const unusedWords = guessList.filter(word => !allUsedWords.includes(word));
 
@@ -89,6 +87,8 @@
                 saveStateCallback();
             }, animationMs);
         } else {
+            completedGuesses = [...completedGuesses, new WordleState(currentGuess, [])];
+
             saveStateCallback();
 
             // Check if any states have zero remaining guesses
@@ -131,7 +131,7 @@
 	onMount(gameApp);
 </script>
 
-<div class="wordle-holder">
+<div class="wordle-holder" style={hidden ? "display: none;" : ""}>
     {#each guessesState as state, i}
         <Wordle
             guesses={[...state.guesses, currentGuess]}

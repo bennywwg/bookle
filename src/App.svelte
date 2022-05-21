@@ -14,6 +14,7 @@
 	let currentGuess: string;
 
 	let gameEnded: boolean = false;
+	let progressSelected: boolean = false;
     let guessesState = [];
 	let completedGuesses = [];
 	let gamePopulateGameState: () => void;
@@ -23,7 +24,6 @@
 		// Save guessesState and completedGuesses to local storage
 		localStorage.setItem("guessesState", JSON.stringify(guessesState));
 		localStorage.setItem("completedGuesses", JSON.stringify(completedGuesses));
-		console.log(guessesState);
 	};
 
 	const tryLoadStateFromLocalStorage = () => {
@@ -34,7 +34,6 @@
 			try {
 				guessesState = JSON.parse(guessesStateString);
 				completedGuesses = JSON.parse(completedGuessesString);
-				console.log(guessesState);
 			} catch(e) {
 				console.error(e);
 				console.log("Failed to load state from local storage, evicting all state.");
@@ -148,8 +147,6 @@
 		console.log(err);
 		loadingStatus = `Failed to load word list: ${err}`;
 	});
-
-	$: guessLog = completedGuesses.forEach(guess => guess.solution);
 </script>
 
 <main>
@@ -161,7 +158,11 @@
 			{:else}
 				<b id="completion">{loadingStatus === "" ? completeCount : "?"} of 1000</b>
 			{/if}
-			<b id="ng-button" on:click={(ev) => { ev.currentTarget.blur(); resetGame(); }}>New Game</b>
+			{#if (gameEnded && loadingStatus === "")}
+				<b id="ng-button" on:click={(ev) => { ev.currentTarget.blur(); resetGame(); }}>New Game</b>
+			{:else}
+				<b id="progress-button" on:click={(ev) => { ev.currentTarget.blur(); progressSelected = !progressSelected; }}>Progress</b>
+			{/if}
 		</div>
 	</div>
 	<div id="game-area">
@@ -175,6 +176,7 @@
 				numGuesses={12}
 				numGames={6}
 				saveStateCallback={saveStateToLocalStorage}
+				hidden={progressSelected}
 				bind:completedGuesses={completedGuesses}
 				bind:guessesState={guessesState}
 				bind:currentSelectionSolution={currentSelectionSolution}
@@ -183,6 +185,13 @@
 				bind:currentGuess={currentGuess}
 				bind:gameEnded={gameEnded}
 			/>
+		{/if}
+		{#if progressSelected}
+			<div class="bingus">
+				{#each completedGuesses.reverse() as guess, i}
+					<div> Guess {completedGuesses.length - i} {guess.guesses.length !== 0 ? '✔️':'❌'} {guess.solution} </div>
+				{/each}
+			</div>
 		{/if}
 	</div>
 	<div id="keyboard">
@@ -217,6 +226,13 @@
 		color: #fff;
 	}
 
+	#progress-button {
+		background-color: rgb(128, 186, 240);
+		border-radius: 0.5rem;
+		border: 2px solid rgb(66, 95, 122);
+		color: #fff;
+	}
+
 	#completion {
 		text-decoration: underline;
 	}
@@ -239,5 +255,13 @@
 
 	#keyboard {
 		outline: 1px solid #ccc;
+	}
+
+	.bingus {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		margin-top: 5rem;
+		margin-bottom: 5rem;
 	}
 </style>
