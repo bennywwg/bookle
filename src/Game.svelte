@@ -26,13 +26,17 @@
 
     export let completedGuesses: WordleState[] = [];
     export let guessesState: WordleState[] = [];
+
+    let getUnusedSolutionWord;
+
     export const repopulateGameState = () => {
-        guessesState = []
+        guessesState = [];
         while (guessesState.length < numGames) {
             guessesState = guessesState.concat([new WordleState(getUnusedSolutionWord(), [])]);
         }
         currentSelectionSolution = "";
     };
+
     export const handleKeyPress = (key) => {
         handleGuessInput(key);
     }
@@ -40,11 +44,12 @@
     let submitIndex: number = -1;
 
     // Assume that the player will never exaust every possible word
-    const getUnusedSolutionWord = () => {
-        // Find a word from guessList that isn't in any of the guess states
+    getUnusedSolutionWord = () => {
         const allUsedWords = [...guessesState, ...(completedGuesses.filter(state => state.guesses.length != 0))].map(state => state.solution);
 
         const unusedWords = guessList.filter(word => !allUsedWords.includes(word));
+
+        console.log(guessList.length + ", " + allUsedWords.length);
 
         return unusedWords[Math.floor(Math.random() * unusedWords.length)];
     }
@@ -133,11 +138,13 @@
 
 <div class="wordle-holder" style={hidden ? "display: none;" : ""}>
     {#each guessesState as state, i}
+        
         <Wordle
             guesses={[...state.guesses, currentGuess]}
             solution={state.solution}
             numGuesses={numGuesses}
             defocused={currentSelectionSolution.length !== 0 && state.solution !== currentSelectionSolution}
+            focused={currentSelectionSolution.length !== 0 && state.solution === currentSelectionSolution}
             selectedCallback={(solution) => { currentSelectionSolution = (currentSelectionSolution === solution) ? "" : solution; }}
             playingSubmitAnimation={submitIndex == i}
         />

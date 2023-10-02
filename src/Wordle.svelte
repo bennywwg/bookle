@@ -5,6 +5,7 @@
     export let solution: string;
     export let numGuesses: number;
     export let defocused: boolean;
+    export let focused: boolean;
     export let selectedCallback: (string) => void;
     export let playingSubmitAnimation: boolean;
     
@@ -21,7 +22,7 @@
     };
 </script>
 
-<div class={defocused ? "wordle wordle-defocused" : "wordle"} on:click={() => selectedCallback(solution)}>
+<div class={defocused ? "wordle wordle-defocused" : (focused ? "wordle wordle-focused" : "wordle")} on:click={() => selectedCallback(solution)}>
     {#each filledGuesses() as guess, i}
         <Row
             guess={guess}
@@ -43,6 +44,11 @@
         flex-direction: column;
         transition: 0.5s;
 	}
+
+    .wordle-focused {
+        box-shadow: 5px 5px 5px #88b;
+        z-index: 10;
+    }
 
     .wordle-defocused {
         opacity: 0.3;

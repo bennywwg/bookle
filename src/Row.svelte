@@ -105,6 +105,7 @@
 		height: var(--tile-size);
 		font-size: calc(0.5 * var(--tile-size));
 		line-height: var(--tile-size);
+		user-select: none;
     }
 
     .game-square-submitted {

@@ -67,10 +67,11 @@
     .key {
         border-radius: 2px;
         margin: 1px;
-        width: 1.5rem;
+        width: 2rem;
         text-align: center;
-        line-height: 200%;
+        line-height: 250%;
         padding: 0;
+        user-select: none;
     }
 
     .unused {
