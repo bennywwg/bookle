@@ -2,7 +2,7 @@
     const rows: string[] = [
         "QWERTYUIOP",
         "ASDFGHJKL",
-        "↩ZXCVBNM⌫"
+        "⏎ZXCVBNM⌫"
     ];
 
     export let presentCorrectKeyLists;
@@ -10,7 +10,7 @@
     export let clickCallback: (key: string) => void;
 
     const clickMapper: (content: string) => string = (content: string) => {
-        if (content == '↩') {
+        if (content == '⏎') {
             return "Enter";
         } else if (content == '⌫') {
             return "Backspace";
@@ -71,24 +71,30 @@
         text-align: center;
         line-height: 250%;
         padding: 0;
+        margin: 2px;
         user-select: none;
+        outline: 1px solid var(--global-outline);
+        border: none;
+        background-color: #0000;
+        color: var(--global-text-on-bg);
     }
 
     .unused {
-        background-color: #fff;
-        border: 1px solid #000;
     }
 
     .missing {
-        background-color: #aaa;
+        background-color: var(--global-gray);
+        color: var(--global-text);
     }
 
     .present {
-        background-color: #c9b458;
+        background-color: var(--global-yellow);
+        color: var(--global-text);
     }
 
     .correct {
-        background-color: #6aaa64;
+        background-color: var(--global-green);
+        color: var(--global-text);
     }
 
 </style>

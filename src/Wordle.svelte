@@ -37,8 +37,8 @@
 <style>
 	.wordle {
 		padding: 0.1em;
-		margin: 0.1em;
-		border: 0.1em solid black;
+		margin: 0.15em;
+		outline: 0.1em solid var(--global-outline);
         border-radius: 0.25em;
         display: flex;
         flex-direction: column;
@@ -52,7 +52,7 @@
 
     .wordle-defocused {
         opacity: 0.3;
-        border: 0.1em solid #888;
+        outline: 0.1em solid var(--global-outline);
         transition: 0.5s;
     }
 </style>

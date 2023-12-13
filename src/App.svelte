@@ -147,6 +147,20 @@
 		tryLoadStateFromLocalStorage();
 		
 		loadingStatus = "";
+
+
+
+		if (window.webkit != undefined && window.webkit.messageHandlers && window.webkit.messageHandlers.bridge && window.webkit.messageHandlers.bridge.postMessage) {
+			const headerBar = document.getElementById("header-bar");
+			let headerHeight = -1;
+			headerHeight = headerBar ? headerBar.getBoundingClientRect().height : -1;
+
+			window.webkit.messageHandlers.bridge.postMessage(`headerHeight:${headerHeight}`);
+			
+			window.webkit.messageHandlers.bridge.onMessage = (msg) => {
+				document.documentElement.setAttribute('data-theme', msg);
+			}
+		}
 	})
 	.catch(err => {
 		console.log(err);
@@ -157,18 +171,12 @@
 <main>
 	<div id="headers">
 		<div id="header-bar">
-			<b id="bookle-label">BOOKLE</b>
-			{#if gameEnded}
-				<b id="completion">Game Ended! {completeCount} of 1000</b>
-			{:else}
-				<b id="completion">{loadingStatus === "" ? completeCount : "?"} of 1000</b>
+			{#if (!gameEnded)}
+				<b class="bookle-label">Mille Word</b>
 			{/if}
-			{#if (gameEnded && loadingStatus === "")}
+			<b class="bookle-label" id="completion">{completeCount} of 1000</b>
+			{#if gameEnded}
 				<b id="ng-button" on:click={(ev) => { ev.currentTarget.blur(); resetGame(); }}>New Game</b>
-			{:else}
-				<b id="progress-button" on:click={(ev) => { ev.currentTarget.blur(); progressSelected = !progressSelected; }}>
-					{progressSelected ? "Back to Game" : "Show Progress"}
-				</b>
 			{/if}
 		</div>
 	</div>
@@ -241,6 +249,10 @@
 		cursor: pointer;
 	}
 
+	.bookle-label {
+		color: var(--global-text-subdue);
+	}
+
 	#completion {
 		text-decoration: underline;
 	}
@@ -255,11 +267,12 @@
 	#game-area {
 		overflow: auto;
 		overflow-x: hidden;
+		padding-top: 10px;
 		padding-bottom: 10px;
 	}
 
 	#headers {
-		outline: 1px solid #ccc;
+		border-bottom: 1px solid #ccc;
 	}
 
 	#keyboard {

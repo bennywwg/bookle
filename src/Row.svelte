@@ -96,8 +96,7 @@
         margin: 2px;
         background-color: var(--color-background);
         font-weight: bold;
-        color: var(--darkGray);
-        outline: 1px solid var(--darkGray);
+        outline: 1px solid var(--global-outline);
 		border-radius: 0.25em;
 		min-width: var(--min-size);
 		text-align: center;
@@ -106,10 +105,11 @@
 		font-size: calc(0.5 * var(--tile-size));
 		line-height: var(--tile-size);
 		user-select: none;
+        color: var(--global-text-on-bg);
     }
 
     .game-square-submitted {
-        color: #fff;
+        color: var(--global-text);
     }
 
 	.game-square-destroying {
@@ -119,34 +119,14 @@
 	}
 
     .missing {
-        background-color: var(--gray);
+        background-color: var(--global-gray);
     }
 
     .present {
-        background-color: var(--yellow);
+        background-color: var(--global-yellow);
     }
 
     .correct {
-        background-color: var(--green);
+        background-color: var(--global-green);
     }
-
-    /* Global Styles & Colors */
-	:root {
-		--green: #6aaa64;
-		--darkendGreen: #538d4e;
-		--yellow: #c9b458;
-		--darkendYellow: #b59f3b;
-		--blue: #587cc9;
-		--darkendBlue: #395185;
-		--lightGray: #d8d8d8;
-		--gray: #86888a;
-		--darkGray: #939598;
-		--white: #fff;
-		--black: #212121;
-		/* Colorblind colors */
-		--orange: #f5793a;
-		--blue: #85c0f9;
-		font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
-		--tile-size: 2rem;
-	}
 </style>
